@@ -1,0 +1,478 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>drc</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>drc_scripts</group-name>
+ <menu-path>tools_menu.drc.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>drc-dsl-xml</dsl-interpreter-name>
+ <text>
+# Silicon4All NCC-1701 Technology
+# Design Manual V1
+#
+# NOT CONFIDENTIAL
+# COPY AS YOU LIKE!
+
+report("DRC report")
+
+# Drawing layers
+
+nwell     = input(1, 0)
+diff      = input(2, 0)
+pplus     = input(3, 0)
+nplus     = input(4, 0)
+poly      = input(5, 0)
+thickox   = input(6, 0)
+polyres   = input(7, 0)
+contact   = input(8, 0)
+metal1    = input(9, 0)
+via       = input(10, 0)
+metal2    = input(11, 0)
+pad       = input(12, 0)
+border    = input(13, 0)
+
+all_drawing = [
+  :nwell,   :diff,    :pplus,   :nplus,   :poly,
+  :thickox, :polyres,  
+  :contact, :metal1,  :via,     :metal2,  :pad 
+]
+
+
+# Compute some layers required layer (saves duplicate computation)
+
+gate              = poly &amp; diff
+poly_edges        = poly.edges
+poly_gate_edges   = poly_edges.interacting(diff)
+other_poly_edges  = poly_edges.not_interacting(diff)
+
+
+# Rules
+
+# ---------------------------------
+# CONT_S
+
+min_cont_s = 360.nm
+
+r_cont_s = contact.space(square, min_cont_s)
+r_cont_s.output("CONT_S: contact space &lt; #{'%.12g' % min_cont_s} µm")
+
+# ---------------------------------
+# CONT_W
+
+exact_cont_w = 180.nm
+
+r_cont_wa = contact.width(square, exact_cont_w)
+r_cont_wa.output("CONT_Wa: contact width &lt; #{'%.12g' % exact_cont_w} µm")
+
+exact_cont_a = exact_cont_w * exact_cont_w
+r_cont_wb = contact.without_area(exact_cont_a)
+r_cont_wb.output("CONT_Wb: contact area != #{'%.12g' % exact_cont_a} µm²")
+
+# ---------------------------------
+# CONT_X
+
+r_cont_x = contact - (contact.inside(diff) + contact.inside(poly))
+r_cont_x.output("CONT_X: contact not entirely inside diff or poly")
+
+# ---------------------------------
+# DIFF_A
+
+min_diff_a = 0.5.um2
+
+r_diff_a = diff.with_area(0, min_diff_a)
+r_diff_a.output("DIFF_A: diff area &lt; #{'%.12g' % min_diff_a} µm²")
+
+# ---------------------------------
+# DIFF_CONT_O
+
+min_diff_cont_o = 110.nm
+
+r_diff_cont_o = diff.enclosing(contact, min_diff_cont_o)
+r_diff_cont_o.output("DIFF_CONT_O: diff overlap over contact &lt; #{'%.12g' % min_diff_cont_o} µm")
+
+# ---------------------------------
+# DIFF_GATE_O
+
+min_diff_gate_o = 420.nm
+
+r_diff_gate_o = diff.enclosing(poly, min_diff_gate_o)
+r_diff_gate_o.output("DIFF_GATE_O: diff overlap over poly &lt; #{'%.12g' % min_diff_gate_o} µm")
+
+# ---------------------------------
+# DIFF_NPLUS_X
+
+r_diff_nplus_x = diff.overlapping(nplus) - nplus
+r_diff_nplus_x.output("DIFF_NPLUS_X: diff must be either inside or outside nplus")
+
+# ---------------------------------
+# DIFF_NWELL_S
+
+min_diff_nwell_s = 300.nm
+
+r_diff_nwell_s = diff.separation(nwell, min_diff_nwell_s)
+r_diff_nwell_s.output("DIFF_NWELL_S: diff to nwell distance &lt; #{'%.12g' % min_diff_nwell_s} µm")
+
+# ---------------------------------
+# DIFF_NWELL_X
+
+r_diff_nwell_x = diff.overlapping(nwell) - nwell
+r_diff_nwell_x.output("DIFF_NWELL_X: diff must be either inside or outside nwell")
+
+# ---------------------------------
+# DIFF_POLY_S
+
+min_diff_poly_s = 100.nm
+
+r_diff_poly_s = diff.separation(poly, min_diff_poly_s)
+r_diff_poly_s.output("DIFF_POLY_S: diff to poly distance &lt; #{'%.12g' % min_diff_poly_s} µm")
+
+# ---------------------------------
+# DIFF_PPLUS_X
+
+r_diff_pplus_x = diff.overlapping(pplus) - pplus
+r_diff_pplus_x.output("DIFF_PPLUS_X: diff must be either inside or outside pplus")
+
+# ---------------------------------
+# DIFF_S
+
+min_diff_s = 600.nm
+
+r_diff_s = diff.space(min_diff_s)
+r_diff_s.output("DIFF_S: diff space &lt; #{'%.12g' % min_diff_s} µm")
+
+# ---------------------------------
+# DIFF_W
+
+min_diff_w = 500.nm
+
+r_diff_w = diff.width(min_diff_w)
+r_diff_w.output("DIFF_W: diff width &lt; #{'%.12g' % min_diff_w} µm")
+
+# ---------------------------------
+# METAL1_CONT_O
+
+min_metal1_cont_o = 60.nm
+
+r_metal1_cont_o = metal1.enclosing(contact, min_metal1_cont_o)
+r_metal1_cont_o.output("METAL1_CONT_O: metal1 overlap over contact &lt; #{'%.12g' % min_metal1_cont_o} µm")
+
+# ---------------------------------
+# METAL1_CONT_X
+
+r_metal1_cont_x = contact - metal1
+r_metal1_cont_x.output("METAL1_CONT_X: no contact without metal1")
+
+# ---------------------------------
+# METAL1_S
+
+min_metal1_s = 300.nm
+
+r_metal1_s = metal1.space(min_metal1_s)
+r_metal1_s.output("METAL1_S: metal1 space &lt; #{'%.12g' % min_metal1_s} µm")
+
+# ---------------------------------
+# METAL1_VIA_O
+
+min_metal1_via_o = 50.nm
+
+r_metal1_via_o = metal1.enclosing(via, min_metal1_via_o)
+r_metal1_via_o.output("METAL1_VIA_O: metal1 overlap over via &lt; #{'%.12g' % min_metal1_via_o} µm")
+
+# ---------------------------------
+# METAL1_VIA_X
+
+r_metal1_via_x = via - metal1
+r_metal1_via_x.output("METAL1_VIA_X: no via without metal1")
+
+# ---------------------------------
+# METAL1_W
+
+min_metal1_w = 300.nm
+
+r_metal1_w = metal1.width(min_metal1_w)
+r_metal1_w.output("METAL1_S: metal1 width &lt; #{'%.12g' % min_metal1_w} µm")
+
+# ---------------------------------
+# METAL1_x
+
+min_metal1_dens = 0.2
+max_metal1_dens = 0.8
+
+metal1_area = metal1.area
+border_area = border.area
+if border_area &gt; 1.dbu * 1.dbu
+
+  r_min_dens = polygon_layer
+  r_max_dens = polygon_layer
+  
+  dens = metal1_area / border_area
+
+  if dens &lt; min_metal1_dens
+    # copy border as min density marker
+    r_min_dens = border
+  end
+  
+  if dens &gt; max_metal1_dens
+    # copy border as max density marker
+    r_max_dens = border
+  end
+  
+  r_min_dens.output("METAL1_Xa: metal1 density (#{'%.2f' % (dens * 100)}%) below threshold of #{'%.12g' % (min_metal1_dens * 100)}%")
+  r_max_dens.output("METAL1_Xb: metal1 density (#{'%.2f' % (dens * 100)}%) above threshold of #{'%.12g' % (max_metal1_dens * 100)}%")
+  
+end
+
+# ---------------------------------
+# METAL2_PAD_O
+
+min_metal2_pad_o = 2.um
+
+r_metal2_pad_o = metal2.enclosing(pad, min_metal2_pad_o)
+r_metal2_pad_o.output("METAL2_PAD_O: metal2 overlap over pad &lt; #{'%.12g' % min_metal2_pad_o} µm")
+
+# ---------------------------------
+# METAL2_PAD_X
+
+r_metal2_pad_x = pad - metal2
+r_metal2_pad_x.output("METAL2_PAD_X: no pad without metal2")
+
+# ---------------------------------
+# METAL2_S
+
+min_metal2_s = 500.nm
+
+r_metal2_s = metal2.space(min_metal2_s)
+r_metal2_s.output("METAL2_S: metal2 space &lt; #{'%.12g' % min_metal2_s} µm")
+
+# ---------------------------------
+# METAL2_SW
+
+min_metal2_s = 700.nm
+min_metal2_wide_w = 3.um
+
+wide_metal2 = metal2 - metal2.width(min_metal2_wide_w, projection).polygons
+wide_metal2_edges = wide_metal2.edges
+narrow_metal2_edges = metal2.edges - wide_metal2_edges
+r_metal2_sw = wide_metal2_edges.separation(narrow_metal2_edges, min_metal2_s)
+r_metal2_sw.output("METAL2_SW: metal2 space &lt; #{'%.12g' % min_metal2_s} for wide metal1 (&gt;= #{'%.12g' % min_metal2_wide_w}) to narrow/wide")
+
+# ---------------------------------
+# METAL2_VIA_O
+
+min_metal2_via_o = 100.nm
+
+r_metal2_via_o = metal2.enclosing(via, min_metal2_via_o)
+r_metal2_via_o.output("METAL2_VIA_O: metal2 overlap over via &lt; #{'%.12g' % min_metal2_via_o} µm")
+
+# ---------------------------------
+# METAL2_VIA_X
+
+r_metal2_via_x = via - metal2
+r_metal2_via_x.output("METAL2_VIA_X: no via without metal2")
+
+# ---------------------------------
+# METAL2_W
+
+min_metal2_w = 400.nm
+
+r_metal2_w = metal2.width(min_metal2_w)
+r_metal2_w.output("METAL2_W: metal2 width &lt; #{'%.12g' % min_metal2_w} µm")
+
+# ---------------------------------
+# NWELL_A
+
+min_nwell_a = 2.um2
+
+r_nwell_a = nwell.with_area(0, min_nwell_a)
+r_nwell_a.output("NWELL_A: nwell area &lt; #{'%.12g' % min_nwell_a} µm²")
+
+# ---------------------------------
+# NWELL_DIFF_O
+
+min_nwell_diff_o = 400.nm
+
+r_nwell_diff_o = nwell.enclosing(diff, min_nwell_diff_o)
+r_nwell_diff_o.output("NWELL_DIFF_O: nwell overlap over diff &lt; #{'%.12g' % min_nwell_diff_o} µm")
+
+# ---------------------------------
+# NWELL_S
+
+min_nwell_s = 1.um
+
+r_nwell_s = nwell.space(min_nwell_s, projection)
+r_nwell_s.output("NWELL_S: nwell space &lt; #{'%.12g' % min_nwell_s} µm")
+
+# ---------------------------------
+# NWELL_W
+
+min_nwell_w = 1.2.um
+
+r_nwell_w = nwell.width(min_nwell_w)
+r_nwell_w.output("NWELL_W: nwell width &lt; #{'%.12g' % min_nwell_w} µm")
+
+# ---------------------------------
+# PAD_S
+
+min_pad_s = 10.um
+
+r_pad_s = pad.space(min_pad_s)
+r_pad_s.output("PAD_S: pad space &lt; #{'%.12g' % min_pad_s} µm")
+
+# ---------------------------------
+# PAD_W
+
+min_pad_w = 10.um
+
+r_pad_w = pad.width(min_pad_w)
+r_pad_w.output("PAD_W: pad width &lt; #{'%.12g' % min_pad_w} µm")
+
+# ---------------------------------
+# POLY_CONT_O
+
+min_poly_cont_o = 60.nm
+
+r_poly_cont_o = poly.enclosing(contact, min_poly_cont_o)
+r_poly_cont_o.output("POLY_CONT_O: poly overlap over contact &lt; #{'%.12g' % min_poly_cont_o} µm")
+
+# ---------------------------------
+# POLY_CONT_S
+
+min_poly_cont_s = 130.nm
+
+r_poly_cont_s = poly.separation(contact, min_poly_cont_s)
+r_poly_cont_s.output("POLY_CONT_S: poly to contact space &lt; #{'%.12g' % min_poly_cont_s} µm")
+
+# ---------------------------------
+# POLY_S
+
+min_poly_s = 300.nm
+
+r_poly_s = poly.space(min_poly_s)
+r_poly_s.output("POLY_S: poly space &lt; #{'%.12g' % min_poly_s} µm")
+
+# ---------------------------------
+# POLY_W
+
+min_poly_w = 250.nm
+
+r_poly_w = poly.width(min_poly_w)
+r_poly_w.output("POLY_W: pad width &lt; #{'%.12g' % min_poly_w} µm")
+
+# ---------------------------------
+# POLY_X1
+
+min_poly_edge_length = 70.nm
+
+r_poly_x1 = poly.edges.with_length(0, min_poly_edge_length)
+r_poly_x1.output("POLY_X1: edge length &lt; #{'%.12g' % min_poly_edge_length} µm")
+
+# ---------------------------------
+# POLY_X2
+
+min_poly_ext_over_diff = 250.nm
+
+other_poly_edges_close_to_diff = other_poly_edges.separation(diff.edges, min_poly_ext_over_diff, projection).first_edges
+
+r_poly_x2 = other_poly_edges_close_to_diff.interacting(poly_gate_edges)
+r_poly_x2.output("POLY_X2: poly extension over gate &lt; #{'%.12g' % min_poly_ext_over_diff} µm")
+
+# ---------------------------------
+# POLYRES_POLY_O
+
+min_polyres_poly_o = 300.nm
+
+r_polyres_poly_o = polyres.enclosing(poly, min_polyres_poly_o)
+r_polyres_poly_o.output("POLYRES_POLY_O: polyres overlap poly contact &lt; #{'%.12g' % min_polyres_poly_o} µm")
+
+# ---------------------------------
+# POLYRES_X
+
+r_polyres_x = diff &amp; polyres
+r_polyres_x.output("POLYRES_X: diff not allowed under polyres")
+
+# ---------------------------------
+# VIA_S
+
+min_via_s = 250.nm
+
+r_via_s = via.space(min_via_s)
+r_via_s.output("VIA_S: via space &lt; #{'%.12g' % min_via_s} µm")
+
+# ---------------------------------
+# VIA_W
+
+exact_via_w = 200.nm
+
+r_via_wa = via.width(square, exact_via_w)
+r_via_wa.output("VIA_Wa: contact width &lt; #{'%.12g' % exact_cont_w} µm")
+
+exact_via_a = exact_via_w * exact_via_w
+r_via_wb = via.without_area(exact_via_a)
+r_via_wb.output("VIA_Wb: contact area != #{'%.12g' % exact_via_a} µm²")
+
+
+# ---------------------------------
+# MANHATTAN
+
+all_drawing.each do |dwg|
+
+  # a Ruby idiom to get the value of a variable whose name is in "dwg" (as symbol)
+  layer = binding.local_variable_get(dwg)
+  
+  # reduce the input to the part we really need to consider (-&gt; performance)
+  non_recilinear = layer.non_rectilinear
+  non_recilinear_polygon_all_edges = non_recilinear.edges
+  
+  # isolate the edges which don't have 0 or 90 degree
+  horizontal = non_recilinear_polygon_all_edges.with_angle(0)
+  vertical = non_recilinear_polygon_all_edges.with_angle(90)
+  r_nonmanhattan = non_recilinear_polygon_all_edges - horizontal - vertical
+  
+  r_nonmanhattan.output("MANHATTAN: edges are neigther vertical nor horizontal")
+  
+end
+
+# ---------------------------------
+# ONGRID
+
+grid = 5.nm
+
+all_drawing.each do |dwg|
+
+  # a Ruby idiom to get the value of a variable whose name is in "dwg" (as symbol)
+  layer = binding.local_variable_get(dwg)
+  
+  r_grid = layer.ongrid(grid).polygons(10.nm)
+  r_grid.output("GRID: vertexes on layer #{dwg} not on grid of #{'%.12g' % grid}")
+  
+end
+
+# ---------------------------------
+# GATE_WELLFORMED
+
+# A wellformed gate simply means not polygon corners appear inside the 
+# diff area. We also check whether the gate regions are rectangles
+
+# size the output shapes a little to improve visibility
+r_gate_malformed_a = (poly.corners &amp; diff).sized(10.nm)
+r_gate_malformed_a.output("GATE_WELLFORMED: poly corners appear inside diff")
+
+r_gate_malformed_b = gate.non_rectangles
+r_gate_malformed_b.output("GATE_WELLFORMED: gate shapes not rectangular")
+
+# ---------------------------------
+# INSIDE_BORDER
+
+r_inside_border = extent - border
+r_inside_border.output("INSIDE_BORDER: there is drawing outside border")
+
+</text>
+</klayout-macro>
