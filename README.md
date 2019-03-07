@@ -1,8 +1,12 @@
 # si4all
 
-A fake "technology" to play with.
+A fake "technology" to play with. 
 
 This is in preparation of the talk at FSiC2019 (https://wiki.f-si.org/index.php/FSiC2019).
+
+DISLAIMER: The technology described in this project is 
+entirely fake. All numbers given are just guesses. Any similarity
+to a real technology is just coincidence.
 
 Here is a rough table of contents:
 
