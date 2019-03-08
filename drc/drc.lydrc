@@ -208,7 +208,7 @@ max_metal1_dens = 0.8
 
 metal1_area = metal1.area
 border_area = border.area
-if border_area &gt; 1.dbu * 1.dbu
+if border_area &gt;= 1.dbu * 1.dbu
 
   r_min_dens = polygon_layer
   r_max_dens = polygon_layer
