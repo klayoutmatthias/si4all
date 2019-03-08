@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <klayout-macro>
- <description/>
+ <description>NCC1701</description>
  <version/>
  <category>drc</category>
  <prolog/>
@@ -198,7 +198,7 @@ r_metal1_via_x.output("METAL1_VIA_X: no via without metal1")
 min_metal1_w = 300.nm
 
 r_metal1_w = metal1.width(min_metal1_w)
-r_metal1_w.output("METAL1_S: metal1 width &lt; #{'%.12g' % min_metal1_w} µm")
+r_metal1_w.output("METAL1_W: metal1 width &lt; #{'%.12g' % min_metal1_w} µm")
 
 # ---------------------------------
 # METAL1_x
@@ -412,11 +412,11 @@ r_via_s.output("VIA_S: via space &lt; #{'%.12g' % min_via_s} µm")
 exact_via_w = 200.nm
 
 r_via_wa = via.width(square, exact_via_w)
-r_via_wa.output("VIA_Wa: contact width &lt; #{'%.12g' % exact_cont_w} µm")
+r_via_wa.output("VIA_Wa: via width &lt; #{'%.12g' % exact_via_w} µm")
 
 exact_via_a = exact_via_w * exact_via_w
 r_via_wb = via.without_area(exact_via_a)
-r_via_wb.output("VIA_Wb: contact area != #{'%.12g' % exact_via_a} µm²")
+r_via_wb.output("VIA_Wb: via area != #{'%.12g' % exact_via_a} µm²")
 
 
 # ---------------------------------

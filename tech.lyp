@@ -18,10 +18,10 @@
   <source>1/0@1</source>
  </properties>
  <properties>
-  <frame-color>#606060</frame-color>
-  <fill-color>#606060</fill-color>
-  <frame-brightness>0</frame-brightness>
-  <fill-brightness>0</fill-brightness>
+  <frame-color>#c0c0c0</frame-color>
+  <fill-color>#c0c0c0</fill-color>
+  <frame-brightness>48</frame-brightness>
+  <fill-brightness>48</fill-brightness>
   <dither-pattern>C0</dither-pattern>
   <line-style>I4</line-style>
   <valid>true</valid>
@@ -35,10 +35,10 @@
   <source>3/0@1</source>
  </properties>
  <properties>
-  <frame-color>#606060</frame-color>
-  <fill-color>#606060</fill-color>
-  <frame-brightness>0</frame-brightness>
-  <fill-brightness>0</fill-brightness>
+  <frame-color>#c0c0c0</frame-color>
+  <fill-color>#c0c0c0</fill-color>
+  <frame-brightness>48</frame-brightness>
+  <fill-brightness>48</fill-brightness>
   <dither-pattern>C1</dither-pattern>
   <line-style>I4</line-style>
   <valid>true</valid>
@@ -220,6 +220,40 @@
   <animation>0</animation>
   <name>13 - BORDER</name>
   <source>13/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#606060</frame-color>
+  <fill-color>#606060</fill-color>
+  <frame-brightness>0</frame-brightness>
+  <fill-brightness>0</fill-brightness>
+  <dither-pattern>I1</dither-pattern>
+  <line-style>I2</line-style>
+  <valid>true</valid>
+  <visible>true</visible>
+  <transparent>false</transparent>
+  <width>1</width>
+  <marked>false</marked>
+  <xfill>true</xfill>
+  <animation>0</animation>
+  <name>1000 - MARKING 1</name>
+  <source>1000/0@1</source>
+ </properties>
+ <properties>
+  <frame-color>#000000</frame-color>
+  <fill-color>#000000</fill-color>
+  <frame-brightness>0</frame-brightness>
+  <fill-brightness>0</fill-brightness>
+  <dither-pattern>I1</dither-pattern>
+  <line-style>I2</line-style>
+  <valid>true</valid>
+  <visible>true</visible>
+  <transparent>false</transparent>
+  <width>1</width>
+  <marked>false</marked>
+  <xfill>false</xfill>
+  <animation>0</animation>
+  <name>1001 - MARKING 2</name>
+  <source>1001/0@1</source>
  </properties>
  <name/>
  <custom-dither-pattern>
