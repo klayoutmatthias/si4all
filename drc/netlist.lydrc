@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>drc</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>drc_scripts</group-name>
+ <menu-path>tools_menu.drc.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>drc-dsl-xml</dsl-interpreter-name>
+ <text>
+# Silicon4All NCC-1701 Technology
+# Design Manual V1
+#
+# NOT CONFIDENTIAL
+# COPY AS YOU LIKE!
+
+# Hierarchical extraction
+
+deep
+
+# Drawing layers
+
+nwell       = input(1, 0)
+diff        = input(2, 0)
+pplus       = input(3, 0)
+nplus       = input(4, 0)
+poly        = input(5, 0)
+thickox     = input(6, 0)
+polyres     = input(7, 0)
+contact     = input(8, 0)
+metal1      = input(9, 0)
+via         = input(10, 0)
+metal2      = input(11, 0)
+
+# Special layer for bulk terminals
+
+bulk        = make_layer
+
+# Computed layers
+
+diff_in_nwell = diff &amp; nwell
+pdiff       = diff_in_nwell - nplus
+ntie        = diff_in_nwell &amp; nplus
+pgate       = pdiff &amp; poly
+psd         = pdiff - pgate
+hv_pgate    = pgate &amp; thickox
+lv_pgate    = pgate - hv_pgate
+hv_psd      = psd &amp; thickox
+lv_psd      = psd - thickox
+
+diff_outside_nwell = diff - nwell
+ndiff      = diff_outside_nwell - pplus
+ptie       = diff_outside_nwell &amp; pplus
+ngate      = ndiff &amp; poly
+nsd        = ndiff - ngate
+hv_ngate   = ngate &amp; thickox
+lv_ngate   = ngate - hv_ngate
+hv_nsd     = nsd &amp; thickox
+lv_nsd     = nsd - thickox
+
+# PMOS transistor device extraction
+
+hvpmos_ex = RBA::DeviceExtractorMOS4Transistor::new("HVPMOS")
+extract_devices(hvpmos_ex, { "SD" =&gt; psd, "G" =&gt; hv_pgate, "P" =&gt; poly, "W" =&gt; nwell })
+
+lvpmos_ex = RBA::DeviceExtractorMOS4Transistor::new("LVPMOS")
+extract_devices(lvpmos_ex, { "SD" =&gt; psd, "G" =&gt; lv_pgate, "P" =&gt; poly, "W" =&gt; nwell })
+
+# NMOS transistor device extraction
+
+lvnmos_ex = RBA::DeviceExtractorMOS4Transistor::new("LVNMOS")
+extract_devices(lvnmos_ex, { "SD" =&gt; nsd, "G" =&gt; lv_ngate, "P" =&gt; poly, "W" =&gt; bulk })
+
+hvnmos_ex = RBA::DeviceExtractorMOS4Transistor::new("HVNMOS")
+extract_devices(hvnmos_ex, { "SD" =&gt; nsd, "G" =&gt; hv_ngate, "P" =&gt; poly, "W" =&gt; bulk })
+
+
+# Define connectivity for netlist extraction
+
+# Inter-layer
+connect(contact, ntie)
+connect(contact, ptie)
+connect(nwell,   ntie)
+connect(psd,     contact)
+connect(nsd,     contact)
+connect(poly,    contact)
+connect(contact, metal1)
+connect(metal1,  via)
+connect(via,     metal2)
+
+# Global connections
+connect_global(ptie, "BULK")
+connect_global(bulk, "BULK")
+
+# Actually performs the extraction
+
+netlist = l2n_data.netlist
+
+# Write the netlist 
+
+writer = RBA::NetlistSpiceWriter::new
+
+path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, ".cir")
+netlist.write(path, writer, "RINGO netlist before simplification")
+puts "Netlist written to #{path}"
+
+# probe:
+
+
+cellmap = l2n_data.cell_mapping_into(source.layout, source.cell_obj)
+
+# build a map of layer indexes (in target layout) to layer objects
+to_layout = source.layout
+lmap = {}
+{ 2000 =&gt; ntie,    2001 =&gt; ptie,    2002 =&gt; nwell,    2003 =&gt; nsd,    2004 =&gt; psd, 
+  2005 =&gt; contact, 2006 =&gt; poly,    2007 =&gt; metal1,   2008 =&gt; via,    2009 =&gt; metal2 }.each do |n,l|
+  lmap[to_layout.layer(n, 0)] = l.data
+end
+  
+l2n_data.build_all_nets(cellmap, to_layout, lmap, "NET_", "CIRCUIT_")
+
+if false
+  probe_point = RBA::DPoint::new(10.0.um, 7.0.um)
+  net = l2n_data.probe_net(metal1.data, probe_point)
+  net &amp;&amp; puts("Net at #{probe_point}: #{net.name}")
+end
+
+if false
+  # shapes of one net
+  
+  # Gets the Circuit object for the top level cell
+  top_circuit = l2n_data.netlist.circuit_by_name(source.layout.top_cell.name)
+  
+  # Finds the Net object for the "VDD" net
+  net = top_circuit.net_by_name("VDD")
+  
+  # outputs the shapes for this net to layers 1000 (ntie), 1001 (ptie), 1002 (nwell)
+  # etc ...
+  { 2000 =&gt; ntie,    2001 =&gt; ptie,    2002 =&gt; nwell,    2003 =&gt; nsd,    2004 =&gt; psd, 
+    2005 =&gt; contact, 2006 =&gt; poly,    2007 =&gt; metal1,   2008 =&gt; via,    2009 =&gt; metal2 }.each do |n,l|
+    DRC::DRCLayer::new(self, l2n_data.shapes_of_net(net, l.data, true)).output(n, 0)
+  end
+end
+
+# Netlist simplification 
+
+netlist.combine_devices
+netlist.make_top_level_pins
+netlist.purge
+netlist.purge_nets
+
+path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, "_simplified.cir")
+netlist.write(path, writer, "RINGO netlist before simplification")
+puts "Netlist written to #{path}"
+
+</text>
+</klayout-macro>
