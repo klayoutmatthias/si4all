@@ -111,30 +111,41 @@ path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, ".cir")
 netlist.write(path, writer, "RINGO netlist before simplification")
 puts "Netlist written to #{path}"
 
-# probe:
 
+# Further processing examples
 
-cellmap = l2n_data.cell_mapping_into(source.layout, source.cell_obj)
+# 1.) Produce all nets as cells with subcells
 
-# build a map of layer indexes (in target layout) to layer objects
-to_layout = source.layout
-lmap = {}
-{ 2000 =&gt; ntie,    2001 =&gt; ptie,    2002 =&gt; nwell,    2003 =&gt; nsd,    2004 =&gt; psd, 
-  2005 =&gt; contact, 2006 =&gt; poly,    2007 =&gt; metal1,   2008 =&gt; via,    2009 =&gt; metal2 }.each do |n,l|
-  lmap[to_layout.layer(n, 0)] = l.data
+if true   # set to true to enable
+
+  cellmap = l2n_data.cell_mapping_into(source.layout, source.cell_obj)
+
+  # build a map of layer indexes (in target layout) to layer objects
+  to_layout = source.layout
+  lmap = {}
+  { 2000 =&gt; ntie,    2001 =&gt; ptie,    2002 =&gt; nwell,    2003 =&gt; nsd,    2004 =&gt; psd, 
+    2005 =&gt; contact, 2006 =&gt; poly,    2007 =&gt; metal1,   2008 =&gt; via,    2009 =&gt; metal2 }.each do |n,l|
+    lmap[to_layout.layer(n, 0)] = l.data
+  end
+    
+  l2n_data.build_all_nets(cellmap, to_layout, lmap, "NET_", "CIRCUIT_")
+
 end
-  
-l2n_data.build_all_nets(cellmap, to_layout, lmap, "NET_", "CIRCUIT_")
 
-if false
+# 2.) Probe the net at a specific location
+  
+if false   # set to true to enable
+
   probe_point = RBA::DPoint::new(10.0.um, 7.0.um)
   net = l2n_data.probe_net(metal1.data, probe_point)
   net &amp;&amp; puts("Net at #{probe_point}: #{net.name}")
+
 end
 
-if false
-  # shapes of one net
+# 3.) Produce the shapes of a specific net (here: VDD)
   
+if false   # set to true to enable
+
   # Gets the Circuit object for the top level cell
   top_circuit = l2n_data.netlist.circuit_by_name(source.layout.top_cell.name)
   
@@ -147,6 +158,7 @@ if false
     2005 =&gt; contact, 2006 =&gt; poly,    2007 =&gt; metal1,   2008 =&gt; via,    2009 =&gt; metal2 }.each do |n,l|
     DRC::DRCLayer::new(self, l2n_data.shapes_of_net(net, l.data, true)).output(n, 0)
   end
+
 end
 
 # Netlist simplification 
