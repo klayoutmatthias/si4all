@@ -108,7 +108,7 @@ netlist = l2n_data.netlist
 writer = RBA::NetlistSpiceWriter::new
 
 path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, ".cir")
-netlist.write(path, writer, "RINGO netlist before simplification")
+netlist.write(path, writer, "Netlist before simplification")
 puts "Netlist written to #{path}"
 
 
@@ -169,7 +169,7 @@ netlist.purge
 netlist.purge_nets
 
 path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, "_simplified.cir")
-netlist.write(path, writer, "RINGO netlist before simplification")
+netlist.write(path, writer, "Netlist after simplification")
 puts "Netlist written to #{path}"
 
 </text>
