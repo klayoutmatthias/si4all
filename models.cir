@@ -8,7 +8,7 @@
 * 180nm NMOS SPICE Parametersv (normal one)
 *
 
-.model NMOS NMOS
+.model MLVNMOS NMOS
 +Level = 49
 
 +Lint = 4.e-08 Tox = 4.e-09 
@@ -67,7 +67,7 @@
 * 180nm PMOS SPICE Parametersv (normal one)
 *
 
-.model PMOS PMOS
+.model MLVPMOS PMOS
 +Level = 49
 
 +Lint = 3.e-08 Tox = 4.2e-09 

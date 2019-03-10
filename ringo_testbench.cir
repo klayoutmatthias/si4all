@@ -1,0 +1,14 @@
+
+.INCLUDE "models.cir"
+
+.INCLUDE "ringo_simplified.cir"
+
+VDD VDD 0 1.8V
+VPULSE EN 0 PULSE(0,1.8V,1NS,1NS)
+
+XRINGO FB VDD OUT EN 0 RINGO
+
+.TRAN 0.01NS 100NS
+
+.PRINT TRAN V(EN) V(FB) V(OUT)
+
