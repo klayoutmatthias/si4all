@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<klayout-macro>
+ <description/>
+ <version/>
+ <category>drc</category>
+ <prolog/>
+ <epilog/>
+ <doc/>
+ <autorun>false</autorun>
+ <autorun-early>false</autorun-early>
+ <shortcut/>
+ <show-in-menu>true</show-in-menu>
+ <group-name>drc_scripts</group-name>
+ <menu-path>tools_menu.drc.end</menu-path>
+ <interpreter>dsl</interpreter>
+ <dsl-interpreter-name>drc-dsl-xml</dsl-interpreter-name>
+ <text>
+# Silicon4All NCC-1701 Technology
+# Design Manual V1
+#
+# NOT CONFIDENTIAL
+# COPY AS YOU LIKE!
+
+# Intentionally flat at we don't have a way to flatten 
+# the device cells currently!
+
+# Drawing layers
+
+nwell       = input(1, 0)
+diff        = input(2, 0)
+pplus       = input(3, 0)
+nplus       = input(4, 0)
+poly        = input(5, 0)
+thickox     = input(6, 0)
+polyres     = input(7, 0)
+contact     = input(8, 0)
+metal1      = input(9, 0)
+via         = input(10, 0)
+metal2      = input(11, 0)
+
+# Special layer for bulk terminals
+
+bulk        = make_layer
+
+# Computed layers
+
+poly_not_res  = poly - polyres
+poly_in_res   = poly &amp; polyres
+
+diff_in_nwell = diff &amp; nwell
+pdiff       = diff_in_nwell - nplus
+ntie        = diff_in_nwell &amp; nplus
+pgate       = pdiff &amp; poly_not_res
+psd         = pdiff - pgate
+hv_pgate    = pgate &amp; thickox
+lv_pgate    = pgate - hv_pgate
+hv_psd      = psd &amp; thickox
+lv_psd      = psd - thickox
+
+diff_outside_nwell = diff - nwell
+ndiff      = diff_outside_nwell - pplus
+ptie       = diff_outside_nwell &amp; pplus
+ngate      = ndiff &amp; poly_not_res
+nsd        = ndiff - ngate
+hv_ngate   = ngate &amp; thickox
+lv_ngate   = ngate - hv_ngate
+hv_nsd     = nsd &amp; thickox
+lv_nsd     = nsd - thickox
+
+# Resistor device extraction
+
+class CustomResistorExtraction &lt; RBA::GenericDeviceExtractor
+
+  def initialize(name, sheet_rho)
+    self.name = name
+    @sheet_rho = sheet_rho
+  end
+  
+  def setup
+  
+    define_layer("C", "Conductor")
+    define_layer("R", "Resistor")
+
+    register_device_class(RBA::DeviceClassResistor::new)
+
+  end
+  
+  def extract_devices(layer_geometry)
+  
+    # layer_geometry provides the input layers in the order they are 
+    # defined with "define_layer"
+    # conductor is supposed to be "conductor outside marker"
+    # resistor is supposed to be "conductor inside marker"
+    conductor = layer_geometry[0]
+    resistor  = layer_geometry[1]
+    
+    # the index of the conductor layer (needed to make the terminals)
+    conductor_geometry_index = 0
+
+    resistor_merged = resistor.merged
+
+    # this will be the edge where the resistor turns into conductor
+    marker_edges = conductor.merged.edges &amp; resistor_merged.edges
+
+    resistor_merged.each do |r|
+
+      # identify the edges where this resistor shape ends
+      interface_edges = marker_edges.interacting(RBA::Region::new(r))
+      
+      # form terminal shapes from these edges
+      terminals = interface_edges.extended_out(1)
+      
+      if terminals.size != 2
+        error("Resistor shape does not touch marker border in exactly two places", r)
+      else
+      
+        # A = L*W
+        # P = 2*(L+W)
+        # -&gt; L = p+sqrt(p*p-A)
+        # -&gt; W = p-sqrt(p*p-A)
+        # (p=P/4)
+        
+        p = 0.25 * r.perimeter
+        a = r.area
+        
+        d = Math.sqrt(p * p - a)
+        l = p + d
+        w = p - d
+        
+        if w &gt; 1e-3
+        
+          device = create_device
+
+          device.set_parameter(RBA::DeviceClassResistor::PARAM_R, @sheet_rho * l / w);
+
+          define_terminal(device, RBA::DeviceClassResistor::TERMINAL_A, conductor_geometry_index, terminals[0]);
+          define_terminal(device, RBA::DeviceClassResistor::TERMINAL_B, conductor_geometry_index, terminals[1]);
+          
+        end
+      
+      end
+    
+    end
+
+  end
+  
+  def get_connectivity(layout, layers)
+
+    # the layer definition is marker, conductor, resistor  
+    # * resistor is used for extraction
+    # * conductor is used for producing the terminals
+    
+    conductor = layers[0]
+    resistor  = layers[1]
+    
+    conn = RBA::Connectivity::new
+    
+    conn.connect(resistor, resistor)
+    conn.connect(conductor, resistor)
+    
+    return conn
+
+  end
+  
+end
+  
+
+
+# Resistor
+
+# Assumes a sheet rho of 150 Ohm/Square
+res_ex = CustomResistorExtraction::new("RES", 150.0)
+extract_devices(res_ex, { "C" =&gt; poly_not_res, "R" =&gt; poly_in_res })
+
+# PMOS transistor device extraction
+
+hvpmos_ex = RBA::DeviceExtractorMOS4Transistor::new("HVPMOS")
+extract_devices(hvpmos_ex, { "SD" =&gt; psd, "G" =&gt; hv_pgate, "P" =&gt; poly_not_res, "W" =&gt; nwell })
+
+lvpmos_ex = RBA::DeviceExtractorMOS4Transistor::new("LVPMOS")
+extract_devices(lvpmos_ex, { "SD" =&gt; psd, "G" =&gt; lv_pgate, "P" =&gt; poly_not_res, "W" =&gt; nwell })
+
+# NMOS transistor device extraction
+
+lvnmos_ex = RBA::DeviceExtractorMOS4Transistor::new("LVNMOS")
+extract_devices(lvnmos_ex, { "SD" =&gt; nsd, "G" =&gt; lv_ngate, "P" =&gt; poly_not_res, "W" =&gt; bulk })
+
+hvnmos_ex = RBA::DeviceExtractorMOS4Transistor::new("HVNMOS")
+extract_devices(hvnmos_ex, { "SD" =&gt; nsd, "G" =&gt; hv_ngate, "P" =&gt; poly_not_res, "W" =&gt; bulk })
+
+
+# Define connectivity for netlist extraction
+
+# Inter-layer
+connect(contact,        ntie)
+connect(contact,        ptie)
+connect(nwell,          ntie)
+connect(psd,            contact)
+connect(nsd,            contact)
+connect(poly_not_res,   contact)
+connect(contact,        metal1)
+connect(metal1,         via)
+connect(via,            metal2)
+
+# Global connections
+connect_global(ptie, "BULK")
+connect_global(bulk, "BULK")
+
+# Actually performs the extraction
+
+netlist = l2n_data.netlist
+
+# Write the netlist 
+
+writer = RBA::NetlistSpiceWriter::new
+
+path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, ".cir")
+netlist.write(path, writer, "Netlist before simplification")
+puts "Netlist written to #{path}"
+
+# Netlist simplification 
+
+# NOTE: use make_top_level_pins before combine_devices as the pin
+# stops the three resistors to be combined into one
+netlist.make_top_level_pins
+netlist.combine_devices
+netlist.purge
+netlist.purge_nets
+
+path = RBA::CellView::active.filename.sub(/\.[^\.]*$/, "_simplified.cir")
+netlist.write(path, writer, "Netlist after simplification")
+puts "Netlist written to #{path}"
+
+</text>
+</klayout-macro>
