@@ -1,4 +1,9 @@
 
+def ignore(name)
+end
+
+alias :stop :pause
+
 # Input layers
 
 height(4.0)
@@ -20,11 +25,25 @@ pad       = layer("12/0")
 pbulk = bulk
 
 nw = mask(nwell).grow(0.8, 0.2, :mode => :round, :into => pbulk)
+output("1/0", pbulk)
+output("2/0", nw)
+stop("WELL")
 
 pp = mask(pplus.not(poly).sized(-0.02)).grow(0.1, 0.03, :mode => :round, :into => [ nw, pbulk ])
 np = mask(nplus.not(poly).sized(-0.02)).grow(0.1, 0.03, :mode => :round, :into => [ nw, pbulk ])
+output("1/0", pbulk)
+output("2/0", nw)
+output("3/0", pp)
+output("4/0", np)
+#stop("PPLUS/NPLUS")
+stop
 
 mask(diff.inverted.sized(0.05)).etch(0.3, 0.05, :mode => :round, :into => [ nw, pbulk, pp, np ])
+output("1/0", pbulk)
+output("2/0", nw)
+output("3/0", pp)
+output("4/0", np)
+stop("STI ETCH")
 
 fieldox = grow(0.3)
 planarize(:downto => pp, :into => fieldox)
@@ -34,6 +53,9 @@ gateox = grow(0.01)
 po = mask(poly).grow(0.2, :taper => 3.0)
 
 etch(0.01, :into => gateox)
+output("5/0", po)
+output("10/0", MaterialData::new(gateox.data + fieldox.data, true))
+stop("GATE")
 
 ox1 = grow(0.4)
 planarize(:to => 0.4, :into => ox1)
